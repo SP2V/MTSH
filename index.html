@@ -295,11 +295,6 @@ footer.credit{
             <div class="unit-input"><input type="number" id="inL" min="0.1" step="0.01" value="12"><span>ม.</span></div>
           </div>
         </div>
-        <div class="field" id="angleField">
-          <label for="inAngle">มุมลาดหลังคา (องศา)</label>
-          <div class="unit-input"><input type="number" id="inAngle" min="0" max="80" step="1" value="30"><span>°</span></div>
-          <div class="hint">มุมชันมากขึ้น ระยะแผ่นตามความลาดจะยาวขึ้น ทั่วไปเมทัลชีตใช้ 15–35°</div>
-        </div>
         <div class="field" id="customAreaField" hidden>
           <label for="inCustomArea">พื้นที่หลังคารวมทุกด้าน (คำนวณเอง)</label>
           <div class="unit-input"><input type="number" id="inCustomArea" min="0.1" step="0.1" value="120"><span>ม.²</span></div>
@@ -416,7 +411,7 @@ footer.credit{
 (function(){
   var $ = function(id){ return document.getElementById(id); };
   var els = {
-    W: $('inW'), L: $('inL'), angle: $('inAngle'), angleField: $('angleField'),
+    W: $('inW'), L: $('inL'),
     customArea: $('inCustomArea'), customAreaField: $('customAreaField'),
     sheetLen: $('inSheetLen'), sheetWidth: $('inSheetWidth'),
     customWidth: $('inCustomWidth'), customWidthField: $('customWidthField'),
@@ -435,7 +430,6 @@ footer.credit{
       document.querySelectorAll('.roof-opt').forEach(function(o){ o.classList.remove('active'); });
       opt.classList.add('active');
       roofType = opt.getAttribute('data-type');
-      els.angleField.hidden = (roofType === 'custom');
       els.customAreaField.hidden = (roofType !== 'custom');
       calc();
     });
@@ -446,7 +440,7 @@ footer.credit{
     calc();
   });
 
-  [els.W, els.L, els.angle, els.customArea, els.sheetLen, els.customWidth, els.overlap, els.waste]
+  [els.W, els.L, els.customArea, els.sheetLen, els.customWidth, els.overlap, els.waste]
     .forEach(function(el){ el.addEventListener('input', calc); });
 
   function num(el, fallback){
@@ -467,20 +461,18 @@ footer.credit{
 
   var SIDE_LABEL = { left:'ด้านซ้าย', right:'ด้านขวา', front:'ด้านหน้า (สกัด)', back:'ด้านหลัง (สกัด)', single:'ผืนหลังคา' };
 
-  function buildSlopes(W, L, thetaDeg){
-    var theta = thetaDeg * Math.PI / 180;
-    var cos = Math.max(Math.cos(theta), 0.05);
+  function buildSlopes(W, L){
     var slopes = [];
     if (roofType === 'shed' || roofType === 'flat'){
-      slopes.push({ side:'single', width:L, rafter: W/cos });
+      slopes.push({ side:'single', width:L, rafter: W });
     } else if (roofType === 'gable' || roofType === 'butterfly'){
-      var r = (W/2)/cos;
+      var r = W/2;
       slopes.push({ side:'left', width:L, rafter:r });
       slopes.push({ side:'right', width:L, rafter:r });
     } else if (roofType === 'hip'){
       var shortSide = Math.min(W, L);
       var longSide = Math.max(W, L);
-      var rHip = (shortSide/2)/cos;
+      var rHip = shortSide/2;
       var trapWidth = longSide - shortSide;
       var ridgeAlongL = (L >= W); // ridge runs the long way; left/right = W-direction faces
       if (trapWidth > 0.001){
@@ -525,8 +517,8 @@ footer.credit{
       sideTotals.single = totalSheets;
       rows.push({ name:'พื้นที่หลังคารวม (กำหนดเอง)', dims:'พท. ' + fmt(area) + ' ม.²', across:'–', tiers:'–', sub: totalSheets });
     } else {
-      var W = num(els.W, 1), L = num(els.L, 1), angle = parseFloat(els.angle.value) || 0;
-      var slopes = buildSlopes(W, L, angle);
+      var W = num(els.W, 1), L = num(els.L, 1);
+      var slopes = buildSlopes(W, L);
       slopes.forEach(function(s){
         // s.rafter = distance up the slope surface -> covered by sheet WIDTH, row by row
         // s.width  = run along the ridge/eave        -> covered by sheet LENGTH, piece by piece
@@ -563,8 +555,7 @@ footer.credit{
     }).join('');
 
     var noteParts = [];
-    noteParts.push('แผ่นวางแนวนอน ยาวคลุมแนวสันหลังคา แล้วเรียง <b>' + fmt(Weff) + ' ม.</b> ต่อแถว ไล่ขึ้นหลังคาทีละแถว');
-    if (roofType !== 'custom') noteParts.push('มุมลาด ' + fmt(parseFloat(els.angle.value)||0,0) + '° ทำให้ระยะลาดยาวกว่าความกว้างจริง ' + fmt(1/Math.cos((parseFloat(els.angle.value)||0)*Math.PI/180),2) + ' เท่า (ใช้คิดจำนวนแถว)');
+    noteParts.push('แผ่นวางแนวนอน ยาวคลุมแนวสันหลังคา แล้วเรียง <b>' + fmt(Weff) + ' ม.</b> ต่อแถว ไล่ขึ้นหลังคาทีละแถว (ไม่ปรับตามมุมลาด)');
     if (roofType === 'hip') noteParts.push('ด้านหัวจั่วสามเหลี่ยมคิดจำนวนแผ่นเป็นประมาณครึ่งหนึ่งของพื้นที่สี่เหลี่ยมเทียบเท่า เนื่องจากต้องตัดเฉียง');
     noteParts.push('บวกเผื่อเสีย/สำรอง ' + fmt(wastePct,0) + '% ในยอดรวมแล้ว');
     els.calcNote.innerHTML = noteParts.join(' · ');
