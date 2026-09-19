@@ -514,6 +514,7 @@ footer.credit{
 
     var totalSheets = 0, totalArea = 0, rows = [];
     var sideTotals = { left:0, right:0, front:0, back:0, single:0 };
+    var sideLayout = {};
 
     if (roofType === 'custom'){
       var area = num(els.customArea, 1);
@@ -536,6 +537,7 @@ footer.credit{
         totalSheets += sub;
         totalArea += s.width * s.rafter;
         sideTotals[s.side] += sub;
+        sideLayout[s.side] = { rows: rowCount, pieces: piecesPerRow };
         rows.push({
           name: SIDE_LABEL[s.side] + (s.triangle ? ' (สามเหลี่ยม)' : ''),
           dims: fmt(s.width) + ' × ' + fmt(s.rafter),
@@ -567,7 +569,7 @@ footer.credit{
     noteParts.push('บวกเผื่อเสีย/สำรอง ' + fmt(wastePct,0) + '% ในยอดรวมแล้ว');
     els.calcNote.innerHTML = noteParts.join(' · ');
 
-    drawDiagram(sideTotals);
+    drawDiagram(sideTotals, sideLayout);
   }
 
   function arrow(x1,y1,x2,y2){
@@ -576,6 +578,21 @@ footer.credit{
   function poly(pts, fill, strokeC){
     return '<polygon points="'+pts.map(function(p){return p[0]+','+p[1];}).join(' ')+'" fill="'+fill+'" stroke="'+strokeC+'" stroke-width="2.5" stroke-linejoin="round"/>';
   }
+  function lerp(p,q,t){ return [p[0]+(q[0]-p[0])*t, p[1]+(q[1]-p[1])*t]; }
+  function thinLine(p1,p2){
+    return '<line x1="'+p1[0]+'" y1="'+p1[1]+'" x2="'+p2[0]+'" y2="'+p2[1]+'" stroke="var(--ink)" stroke-width="1" stroke-opacity="0.28"/>';
+  }
+  // A,B = the two ends of the eave edge; D,C = the two ends of the ridge edge (D pairs with A, C pairs with B).
+  // Draws the sheet-laying grid: rowCount bands climbing from eave to ridge, each split into pieceCount pieces along the ridge.
+  function sheetGrid(A,B,D,C,rowCount,pieceCount){
+    var out = '';
+    var maxLines = 9;
+    var rN = Math.max(1, Math.min(rowCount||1, maxLines));
+    var pN = Math.max(1, Math.min(pieceCount||1, maxLines));
+    for (var i=1;i<rN;i++){ var t=i/rN; out += thinLine(lerp(A,D,t), lerp(B,C,t)); }
+    for (var j=1;j<pN;j++){ var t=j/pN; out += thinLine(lerp(A,B,t), lerp(D,C,t)); }
+    return out;
+  }
   function countLabel(x, y, n){
     if (!n) return '';
     return '<text x="'+x+'" y="'+y+'" text-anchor="middle" font-family="var(--font-mono)" font-weight="700" font-size="15" fill="var(--ink)">'+n+'</text>' +
@@ -583,7 +600,7 @@ footer.credit{
   }
 
   // Top-down plan view: box width axis = W (slope/eave-to-eave), height axis = L (ridge direction)
-  function drawDiagram(sideTotals){
+  function drawDiagram(sideTotals, sideLayout){
     var W = num(els.W, 1), L = num(els.L, 1);
     var strokeC = 'var(--accent2)';
     var fill = 'color-mix(in srgb, var(--accent2) 14%, transparent)';
@@ -591,19 +608,23 @@ footer.credit{
     var bx=30, by=18, bw=200, bh=144, cx=bx+bw/2, cy=by+bh/2;
     var vb = '0 0 260 180';
     var defs = '<defs><marker id="waterArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="var(--accent)"/></marker></defs>';
-    var shapes = '', arrows = '', labels = '', note = '';
+    var shapes = '', grid = '', arrows = '', labels = '', note = '';
+    var L1 = sideLayout || {};
 
     if (roofType === 'shed' || roofType === 'flat'){
       shapes = poly([[bx,by],[bx+bw,by],[bx+bw,by+bh],[bx,by+bh]], fill, strokeC);
       shapes += '<line x1="'+(bx+bw)+'" y1="'+by+'" x2="'+(bx+bw)+'" y2="'+(by+bh)+'" stroke="var(--ink)" stroke-width="4"/>';
+      if (L1.single) grid = sheetGrid([bx,by],[bx,by+bh],[bx+bw,by],[bx+bw,by+bh], L1.single.rows, L1.single.pieces);
       arrows = arrow(bx+bw-25, cy, bx+25, cy);
       labels = countLabel(cx, cy+30, sideTotals.single);
-      note = 'เส้นหนา = ด้านสูง (สัน) · ลูกศร = ทิศน้ำไหล';
+      note = 'เส้นหนา = ด้านสูง (สัน) · เส้นบาง = แนวแผ่น · ลูกศร = ทิศน้ำไหล';
     } else if (roofType === 'gable' || roofType === 'butterfly'){
       var inward = (roofType === 'butterfly');
       shapes = poly([[bx,by],[cx,by],[cx,by+bh],[bx,by+bh]], fill, strokeC);
       shapes += poly([[cx,by],[bx+bw,by],[bx+bw,by+bh],[cx,by+bh]], fill2, strokeC);
       shapes += '<line x1="'+cx+'" y1="'+by+'" x2="'+cx+'" y2="'+(by+bh)+'" stroke="var(--ink)" stroke-width="4"/>';
+      if (L1.left) grid += sheetGrid([bx,by],[bx,by+bh],[cx,by],[cx,by+bh], L1.left.rows, L1.left.pieces);
+      if (L1.right) grid += sheetGrid([bx+bw,by],[bx+bw,by+bh],[cx,by],[cx,by+bh], L1.right.rows, L1.right.pieces);
       arrows = inward
         ? arrow(bx+25,cy,cx-15,cy) + arrow(bx+bw-25,cy,cx+15,cy)
         : arrow(cx-15,cy,bx+25,cy) + arrow(cx+15,cy,bx+bw-25,cy);
@@ -624,6 +645,10 @@ footer.credit{
         shapes += poly([TL,rt,TR], fill2, strokeC);
         shapes += poly([BL,rb,BR], fill, strokeC);
         if (hasRidge) shapes += '<line x1="'+rt[0]+'" y1="'+rt[1]+'" x2="'+rb[0]+'" y2="'+rb[1]+'" stroke="var(--ink)" stroke-width="4"/>';
+        if (L1.left) grid += sheetGrid(TL,BL,rt,rb, L1.left.rows, L1.left.pieces);
+        if (L1.right) grid += sheetGrid(TR,BR,rt,rb, L1.right.rows, L1.right.pieces);
+        if (L1.front) grid += sheetGrid(TL,TR,rt,rt, L1.front.rows, L1.front.pieces);
+        if (L1.back) grid += sheetGrid(BL,BR,rb,rb, L1.back.rows, L1.back.pieces);
         arrows = arrow(cx-15,cy,bx+22,cy) + arrow(cx+15,cy,bx+bw-22,cy) +
                  arrow(cx,(by+rt[1])/2-8,cx,by+14) + arrow(cx,(rb[1]+by+bh)/2+8,cx,by+bh-14);
         labels = countLabel((bx+cx)/2, cy+30, sideTotals.left) + countLabel((cx+bx+bw)/2, cy+30, sideTotals.right);
@@ -637,19 +662,23 @@ footer.credit{
         shapes += poly([TL2,rl,BL2], fill, strokeC);
         shapes += poly([TR2,rr,BR2], fill2, strokeC);
         if (hasRidge) shapes += '<line x1="'+rl[0]+'" y1="'+rl[1]+'" x2="'+rr[0]+'" y2="'+rr[1]+'" stroke="var(--ink)" stroke-width="4"/>';
+        if (L1.front) grid += sheetGrid(TL2,TR2,rl,rr, L1.front.rows, L1.front.pieces);
+        if (L1.back) grid += sheetGrid(BL2,BR2,rl,rr, L1.back.rows, L1.back.pieces);
+        if (L1.left) grid += sheetGrid(TL2,BL2,rl,rl, L1.left.rows, L1.left.pieces);
+        if (L1.right) grid += sheetGrid(TR2,BR2,rr,rr, L1.right.rows, L1.right.pieces);
         arrows = arrow(cx,cy-15,cx,by+22) + arrow(cx,cy+15,cx,by+bh-22) +
                  arrow((bx+rl[0])/2-8,cy,bx+14,cy) + arrow((rr[0]+bx+bw)/2+8,cy,bx+bw-14,cy);
         labels = countLabel(cx, by+34, sideTotals.front) + countLabel(cx, by+bh-14, sideTotals.back);
         labels += countLabel(bx+34, cy+18, sideTotals.left) + countLabel(bx+bw-34, cy+18, sideTotals.right);
       }
-      note = 'เส้นหนา = แนวสัน/ตะเข้จั่ว · ลูกศรชี้ทิศน้ำไหลแต่ละด้าน';
+      note = 'เส้นหนา = แนวสัน/ตะเข้จั่ว · เส้นบาง = แนวแผ่น · ลูกศรชี้ทิศน้ำไหลแต่ละด้าน';
     } else {
       shapes = '<path d="M'+bx+' '+(by+bh*0.7)+' Q '+cx+' '+by+', '+(bx+bw)+' '+(by+bh*0.55)+'" fill="none" stroke="'+strokeC+'" stroke-width="3" stroke-linecap="round" stroke-dasharray="6 5"/>';
       note = 'ทรงอิสระ — ใช้พื้นที่รวมที่กำหนดเอง ตรวจทิศทางน้ำไหลจริงหน้างาน';
     }
 
     els.diagramWrap.innerHTML =
-      '<svg viewBox="'+vb+'" width="320">' + defs + shapes + arrows + labels +
+      '<svg viewBox="'+vb+'" width="320">' + defs + shapes + grid + arrows + labels +
       '<text x="'+cx+'" y="'+(by-6)+'" text-anchor="middle" font-family="var(--font-mono)" font-size="11" fill="var(--ink-dim)">L = ' + fmt(L,1) + ' ม.</text>' +
       '<text x="'+(bx-14)+'" y="'+cy+'" text-anchor="middle" font-family="var(--font-mono)" font-size="11" fill="var(--ink-dim)" transform="rotate(-90 '+(bx-14)+' '+cy+')">W = ' + fmt(W,1) + ' ม.</text>' +
       '<text x="'+cx+'" y="'+(by+bh+18)+'" text-anchor="middle" font-family="var(--font-body)" font-size="10" fill="var(--ink-dim)">' + note + '</text>' +
