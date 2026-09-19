@@ -456,7 +456,7 @@ footer.credit{
   function tiersFor(rafter, sheetLen, overlap){
     if (sheetLen >= rafter) return 1;
     var eff = Math.max(sheetLen - overlap, 0.05);
-    return Math.max(1, Math.ceil(rafter / eff));
+    return Math.max(1, Math.round(rafter / eff));
   }
 
   var SIDE_LABEL = { left:'ด้านซ้าย', right:'ด้านขวา', front:'ด้านหน้า (สกัด)', back:'ด้านหลัง (สกัด)', single:'ผืนหลังคา' };
