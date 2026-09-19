@@ -529,7 +529,9 @@ footer.credit{
         totalSheets += sub;
         totalArea += s.width * s.rafter;
         sideTotals[s.side] += sub;
-        sideLayout[s.side] = { rows: across, pieces: tiers };
+        // grid drawing only: bands climb eave->ridge (tiers, since sheet LENGTH runs that way,
+        // parallel to water flow), subdivided along the ridge by sheet width (across)
+        sideLayout[s.side] = { rows: tiers, pieces: across };
         rows.push({
           name: SIDE_LABEL[s.side] + (s.triangle ? ' (สามเหลี่ยม)' : ''),
           dims: fmt(s.width) + ' × ' + fmt(s.rafter),
