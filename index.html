@@ -299,6 +299,22 @@ footer.credit{
           <label for="inCustomArea">พื้นที่หลังคารวมทุกด้าน (คำนวณเอง)</label>
           <div class="unit-input"><input type="number" id="inCustomArea" min="0.1" step="0.1" value="120"><span>ม.²</span></div>
         </div>
+        <div class="field" id="splitLToggleField" hidden>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;">
+            <input type="checkbox" id="inSplitL" style="width:auto;">
+            ความยาวสันสองฝั่งไม่เท่ากัน (กรอกแยกซ้าย-ขวา)
+          </label>
+        </div>
+        <div class="row2" id="splitLFields" hidden>
+          <div class="field">
+            <label for="inLLeft">ความยาวฝั่งซ้าย</label>
+            <div class="unit-input"><input type="number" id="inLLeft" min="0.1" step="0.01" value="12"><span>ม.</span></div>
+          </div>
+          <div class="field">
+            <label for="inLRight">ความยาวฝั่งขวา</label>
+            <div class="unit-input"><input type="number" id="inLRight" min="0.1" step="0.01" value="12"><span>ม.</span></div>
+          </div>
+        </div>
       </div>
 
       <div class="card">
@@ -413,6 +429,8 @@ footer.credit{
   var els = {
     W: $('inW'), L: $('inL'),
     customArea: $('inCustomArea'), customAreaField: $('customAreaField'),
+    splitLToggleField: $('splitLToggleField'), inSplitL: $('inSplitL'), splitLFields: $('splitLFields'),
+    inLLeft: $('inLLeft'), inLRight: $('inLRight'),
     sheetLen: $('inSheetLen'), sheetWidth: $('inSheetWidth'),
     customWidth: $('inCustomWidth'), customWidthField: $('customWidthField'),
     overlap: $('inOverlap'), waste: $('inWaste'),
@@ -431,6 +449,9 @@ footer.credit{
       opt.classList.add('active');
       roofType = opt.getAttribute('data-type');
       els.customAreaField.hidden = (roofType !== 'custom');
+      var isGableLike = (roofType === 'gable' || roofType === 'butterfly');
+      els.splitLToggleField.hidden = !isGableLike;
+      els.splitLFields.hidden = !(isGableLike && els.inSplitL.checked);
       calc();
     });
   });
@@ -440,7 +461,16 @@ footer.credit{
     calc();
   });
 
-  [els.W, els.L, els.customArea, els.sheetLen, els.customWidth, els.overlap, els.waste]
+  els.inSplitL.addEventListener('change', function(){
+    els.splitLFields.hidden = !els.inSplitL.checked;
+    if (els.inSplitL.checked){
+      els.inLLeft.value = els.L.value;
+      els.inLRight.value = els.L.value;
+    }
+    calc();
+  });
+
+  [els.W, els.L, els.customArea, els.sheetLen, els.customWidth, els.overlap, els.waste, els.inLLeft, els.inLRight]
     .forEach(function(el){ el.addEventListener('input', calc); });
 
   function num(el, fallback){
@@ -461,14 +491,16 @@ footer.credit{
 
   var SIDE_LABEL = { left:'ด้านซ้าย', right:'ด้านขวา', front:'ด้านหน้า (สกัด)', back:'ด้านหลัง (สกัด)', single:'ผืนหลังคา' };
 
-  function buildSlopes(W, L){
+  function buildSlopes(W, L, splitLens){
     var slopes = [];
     if (roofType === 'shed' || roofType === 'flat'){
       slopes.push({ side:'single', width:L, rafter: W });
     } else if (roofType === 'gable' || roofType === 'butterfly'){
       var r = W/2;
-      slopes.push({ side:'left', width:L, rafter:r });
-      slopes.push({ side:'right', width:L, rafter:r });
+      var lenLeft = splitLens ? splitLens.left : L;
+      var lenRight = splitLens ? splitLens.right : L;
+      slopes.push({ side:'left', width:lenLeft, rafter:r });
+      slopes.push({ side:'right', width:lenRight, rafter:r });
     } else if (roofType === 'hip'){
       var shortSide = Math.min(W, L);
       var longSide = Math.max(W, L);
@@ -518,7 +550,9 @@ footer.credit{
       rows.push({ name:'พื้นที่หลังคารวม (กำหนดเอง)', dims:'พท. ' + fmt(area) + ' ม.²', across:'–', tiers:'–', sub: totalSheets });
     } else {
       var W = num(els.W, 1), L = num(els.L, 1);
-      var slopes = buildSlopes(W, L);
+      var splitActive = (roofType === 'gable' || roofType === 'butterfly') && els.inSplitL.checked;
+      var splitLens = splitActive ? { left: num(els.inLLeft, L), right: num(els.inLRight, L) } : null;
+      var slopes = buildSlopes(W, L, splitLens);
       slopes.forEach(function(s){
         // sheet LENGTH runs along s.width (parallel to the ridge)
         // sheets sit side by side (using sheet WIDTH) along s.rafter (across, eave to ridge)
@@ -562,7 +596,7 @@ footer.credit{
     noteParts.push('บวกเผื่อเสีย/สำรอง ' + fmt(wastePct,0) + '% ในยอดรวมแล้ว');
     els.calcNote.innerHTML = noteParts.join(' · ');
 
-    drawDiagram(sideTotals, sideLayout);
+    drawDiagram(sideTotals, sideLayout, splitLens);
   }
 
   function arrow(x1,y1,x2,y2){
@@ -593,7 +627,7 @@ footer.credit{
   }
 
   // Top-down plan view: box width axis = W (slope/eave-to-eave), height axis = L (ridge direction)
-  function drawDiagram(sideTotals, sideLayout){
+  function drawDiagram(sideTotals, sideLayout, splitLens){
     var W = num(els.W, 1), L = num(els.L, 1);
     var strokeC = 'var(--accent2)';
     var fill = 'color-mix(in srgb, var(--accent2) 14%, transparent)';
@@ -670,9 +704,12 @@ footer.credit{
       note = 'ทรงอิสระ — ใช้พื้นที่รวมที่กำหนดเอง ตรวจทิศทางน้ำไหลจริงหน้างาน';
     }
 
+    var topLabel = splitLens
+      ? '<text x="'+(bx+cx)/2+'" y="'+(by-6)+'" text-anchor="middle" font-family="var(--font-mono)" font-size="10.5" fill="var(--ink-dim)">L ซ้าย ' + fmt(splitLens.left,1) + ' ม.</text>' +
+        '<text x="'+(cx+bx+bw)/2+'" y="'+(by-6)+'" text-anchor="middle" font-family="var(--font-mono)" font-size="10.5" fill="var(--ink-dim)">L ขวา ' + fmt(splitLens.right,1) + ' ม.</text>'
+      : '<text x="'+cx+'" y="'+(by-6)+'" text-anchor="middle" font-family="var(--font-mono)" font-size="11" fill="var(--ink-dim)">L = ' + fmt(L,1) + ' ม.</text>';
     els.diagramWrap.innerHTML =
-      '<svg viewBox="'+vb+'" width="320">' + defs + shapes + grid + arrows + labels +
-      '<text x="'+cx+'" y="'+(by-6)+'" text-anchor="middle" font-family="var(--font-mono)" font-size="11" fill="var(--ink-dim)">L = ' + fmt(L,1) + ' ม.</text>' +
+      '<svg viewBox="'+vb+'" width="320">' + defs + shapes + grid + arrows + labels + topLabel +
       '<text x="'+(bx-14)+'" y="'+cy+'" text-anchor="middle" font-family="var(--font-mono)" font-size="11" fill="var(--ink-dim)" transform="rotate(-90 '+(bx-14)+' '+cy+')">W = ' + fmt(W,1) + ' ม.</text>' +
       '<text x="'+cx+'" y="'+(by+bh+18)+'" text-anchor="middle" font-family="var(--font-body)" font-size="10" fill="var(--ink-dim)">' + note + '</text>' +
       '</svg>';
