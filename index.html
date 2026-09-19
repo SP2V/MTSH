@@ -449,7 +449,7 @@ footer.credit{
       opt.classList.add('active');
       roofType = opt.getAttribute('data-type');
       els.customAreaField.hidden = (roofType !== 'custom');
-      var isGableLike = (roofType === 'gable' || roofType === 'butterfly');
+      var isGableLike = (roofType === 'gable');
       els.splitLToggleField.hidden = !isGableLike;
       els.splitLFields.hidden = !(isGableLike && els.inSplitL.checked);
       calc();
@@ -550,7 +550,7 @@ footer.credit{
       rows.push({ name:'พื้นที่หลังคารวม (กำหนดเอง)', dims:'พท. ' + fmt(area) + ' ม.²', across:'–', tiers:'–', sub: totalSheets });
     } else {
       var W = num(els.W, 1), L = num(els.L, 1);
-      var splitActive = (roofType === 'gable' || roofType === 'butterfly') && els.inSplitL.checked;
+      var splitActive = (roofType === 'gable') && els.inSplitL.checked;
       var splitLens = splitActive ? { left: num(els.inLLeft, L), right: num(els.inLRight, L) } : null;
       var slopes = buildSlopes(W, L, splitLens);
       slopes.forEach(function(s){
