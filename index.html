@@ -164,10 +164,9 @@ input[type=number]:focus, select:focus{
 fieldset{border:none;padding:0;margin:0;}
 .roof-picker{
   display:grid;
-  grid-template-columns:repeat(3,1fr);
+  grid-template-columns:repeat(2,1fr);
   gap:8px;
 }
-@media (max-width:520px){ .roof-picker{grid-template-columns:repeat(2,1fr);} }
 .roof-opt{
   border:1.5px solid var(--line);
   background:var(--surface-2);
@@ -277,7 +276,7 @@ footer.credit{
   <header class="page">
     <div class="eyebrow">คำนวณวัสดุมุงหลังคา</div>
     <h1>คำนวณจำนวนแผ่นเมทัลชีต</h1>
-    <p class="sub">กรอกขนาดพื้นที่หลังคา ความยาวแผ่นที่จะสั่งตัด แล้วเลือกทรงหลังคา ระบบคำนวณจำนวนแผ่นที่ต้องใช้ให้ทันที รองรับหลังคาทุกทรงหลัก และมีโหมด "กำหนดพื้นที่เอง" สำหรับทรงพิเศษ</p>
+    <p class="sub">กรอกขนาดพื้นที่หลังคา ความยาวแผ่นที่จะสั่งตัด แล้วเลือกทรงหลังคา (เพิงหมาแหงน หรือ จั่ว) ระบบคำนวณจำนวนแผ่นที่ต้องใช้ให้ทันที</p>
   </header>
 
   <div class="grid">
@@ -294,10 +293,6 @@ footer.credit{
             <label for="inL">ความยาวอาคาร (แนวสันหลังคา)</label>
             <div class="unit-input"><input type="number" id="inL" min="0.1" step="0.01" value="12"><span>ม.</span></div>
           </div>
-        </div>
-        <div class="field" id="customAreaField" hidden>
-          <label for="inCustomArea">พื้นที่หลังคารวมทุกด้าน (คำนวณเอง)</label>
-          <div class="unit-input"><input type="number" id="inCustomArea" min="0.1" step="0.1" value="120"><span>ม.²</span></div>
         </div>
         <div class="field" id="splitLToggleField" hidden>
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;">
@@ -329,26 +324,6 @@ footer.credit{
             <input type="radio" name="roofType" value="gable">
             <svg viewBox="0 0 60 34"><path d="M4 30 L30 6 L56 30 M4 30 L56 30" fill="none" stroke-width="2.2" stroke-linejoin="round"/></svg>
             <span>จั่ว</span>
-          </label>
-          <label class="roof-opt" data-type="hip">
-            <input type="radio" name="roofType" value="hip">
-            <svg viewBox="0 0 60 34"><path d="M4 30 L18 8 L42 8 L56 30 M18 8 L4 30 M42 8 L56 30 M18 8 L42 8" fill="none" stroke-width="2.2" stroke-linejoin="round"/></svg>
-            <span>ปั้นหยา</span>
-          </label>
-          <label class="roof-opt" data-type="butterfly">
-            <input type="radio" name="roofType" value="butterfly">
-            <svg viewBox="0 0 60 34"><path d="M4 8 L30 26 L56 8 M4 8 L4 20 M56 8 L56 20 M4 20 L30 30 L56 20" fill="none" stroke-width="2.2" stroke-linejoin="round"/></svg>
-            <span>ปีกผีเสื้อ</span>
-          </label>
-          <label class="roof-opt" data-type="flat">
-            <input type="radio" name="roofType" value="flat">
-            <svg viewBox="0 0 60 34"><path d="M4 26 L4 12 L56 12 L56 26 Z" fill="none" stroke-width="2.2" stroke-linejoin="round"/></svg>
-            <span>แบนราบ/ลาดเอียงน้อย</span>
-          </label>
-          <label class="roof-opt" data-type="custom">
-            <input type="radio" name="roofType" value="custom">
-            <svg viewBox="0 0 60 34"><path d="M6 28 Q 20 6 34 20 T 54 10" fill="none" stroke-width="2.2" stroke-linecap="round"/></svg>
-            <span>ทรงอื่น ๆ / กำหนดเอง</span>
           </label>
         </fieldset>
       </div>
@@ -428,7 +403,6 @@ footer.credit{
   var $ = function(id){ return document.getElementById(id); };
   var els = {
     W: $('inW'), L: $('inL'),
-    customArea: $('inCustomArea'), customAreaField: $('customAreaField'),
     splitLToggleField: $('splitLToggleField'), inSplitL: $('inSplitL'), splitLFields: $('splitLFields'),
     inLLeft: $('inLLeft'), inLRight: $('inLRight'),
     sheetLen: $('inSheetLen'), sheetWidth: $('inSheetWidth'),
@@ -448,7 +422,6 @@ footer.credit{
       document.querySelectorAll('.roof-opt').forEach(function(o){ o.classList.remove('active'); });
       opt.classList.add('active');
       roofType = opt.getAttribute('data-type');
-      els.customAreaField.hidden = (roofType !== 'custom');
       var isGableLike = (roofType === 'gable');
       els.splitLToggleField.hidden = !isGableLike;
       els.splitLFields.hidden = !(isGableLike && els.inSplitL.checked);
@@ -470,7 +443,7 @@ footer.credit{
     calc();
   });
 
-  [els.W, els.L, els.customArea, els.sheetLen, els.customWidth, els.overlap, els.waste, els.inLLeft, els.inLRight]
+  [els.W, els.L, els.sheetLen, els.customWidth, els.overlap, els.waste, els.inLLeft, els.inLRight]
     .forEach(function(el){ el.addEventListener('input', calc); });
 
   function num(el, fallback){
@@ -489,43 +462,18 @@ footer.credit{
     return Math.max(1, Math.round(rafter / eff));
   }
 
-  var SIDE_LABEL = { left:'ด้านซ้าย', right:'ด้านขวา', front:'ด้านหน้า (สกัด)', back:'ด้านหลัง (สกัด)', single:'ผืนหลังคา' };
+  var SIDE_LABEL = { left:'ด้านซ้าย', right:'ด้านขวา', single:'ผืนหลังคา' };
 
   function buildSlopes(W, L, splitLens){
     var slopes = [];
-    if (roofType === 'shed' || roofType === 'flat'){
+    if (roofType === 'shed'){
       slopes.push({ side:'single', width:L, rafter: W });
-    } else if (roofType === 'gable' || roofType === 'butterfly'){
+    } else if (roofType === 'gable'){
       var r = W/2;
       var lenLeft = splitLens ? splitLens.left : L;
       var lenRight = splitLens ? splitLens.right : L;
       slopes.push({ side:'left', width:lenLeft, rafter:r });
       slopes.push({ side:'right', width:lenRight, rafter:r });
-    } else if (roofType === 'hip'){
-      var shortSide = Math.min(W, L);
-      var longSide = Math.max(W, L);
-      var rHip = shortSide/2;
-      var trapWidth = longSide - shortSide;
-      var ridgeAlongL = (L >= W); // ridge runs the long way; left/right = W-direction faces
-      if (trapWidth > 0.001){
-        if (ridgeAlongL){
-          slopes.push({ side:'left', width:trapWidth, rafter:rHip });
-          slopes.push({ side:'right', width:trapWidth, rafter:rHip });
-          slopes.push({ side:'front', width:shortSide, rafter:rHip, triangle:true });
-          slopes.push({ side:'back', width:shortSide, rafter:rHip, triangle:true });
-        } else {
-          slopes.push({ side:'front', width:trapWidth, rafter:rHip });
-          slopes.push({ side:'back', width:trapWidth, rafter:rHip });
-          slopes.push({ side:'left', width:shortSide, rafter:rHip, triangle:true });
-          slopes.push({ side:'right', width:shortSide, rafter:rHip, triangle:true });
-        }
-      } else {
-        // square footprint: pure pyramid, four equal triangles
-        slopes.push({ side:'left', width:shortSide, rafter:rHip, triangle:true });
-        slopes.push({ side:'right', width:shortSide, rafter:rHip, triangle:true });
-        slopes.push({ side:'front', width:shortSide, rafter:rHip, triangle:true });
-        slopes.push({ side:'back', width:shortSide, rafter:rHip, triangle:true });
-      }
     }
     return slopes;
   }
@@ -537,52 +485,41 @@ footer.credit{
     var wastePct = Math.max(parseFloat(els.waste.value) || 0, 0);
 
     var totalSheets = 0, totalArea = 0, rows = [];
-    var sideTotals = { left:0, right:0, front:0, back:0, single:0 };
+    var sideTotals = { left:0, right:0, single:0 };
     var sideLayout = {};
 
-    if (roofType === 'custom'){
-      var area = num(els.customArea, 1);
-      var coveragePerSheet = Weff * sheetLen;
-      var rawSheets = area / coveragePerSheet;
-      totalSheets = Math.ceil(rawSheets * (1 + wastePct/100));
-      totalArea = area;
-      sideTotals.single = totalSheets;
-      rows.push({ name:'พื้นที่หลังคารวม (กำหนดเอง)', dims:'พท. ' + fmt(area) + ' ม.²', across:'–', tiers:'–', sub: totalSheets });
-    } else {
-      var W = num(els.W, 1), L = num(els.L, 1);
-      var splitActive = (roofType === 'gable') && els.inSplitL.checked;
-      var splitLens = splitActive ? { left: num(els.inLLeft, L), right: num(els.inLRight, L) } : null;
-      var slopes = buildSlopes(W, L, splitLens);
-      slopes.forEach(function(s){
-        // sheet LENGTH runs along s.width (parallel to the ridge)
-        // sheets sit side by side (using sheet WIDTH) along s.rafter (across, eave to ridge)
-        var across = Math.ceil(s.rafter / Weff);
-        var tiers = tiersFor(s.width, sheetLen, overlap);
-        var sub = across * tiers;
-        if (s.triangle) sub = Math.max(1, Math.ceil(sub / 2));
-        totalSheets += sub;
-        totalArea += s.width * s.rafter;
-        sideTotals[s.side] += sub;
-        // grid drawing only: bands climb eave->ridge (tiers, since sheet LENGTH runs that way,
-        // parallel to water flow), subdivided along the ridge by sheet width (across)
-        sideLayout[s.side] = { rows: tiers, pieces: across };
-        rows.push({
-          name: SIDE_LABEL[s.side] + (s.triangle ? ' (สามเหลี่ยม)' : ''),
-          dims: fmt(s.width) + ' × ' + fmt(s.rafter),
-          across: across, tiers: tiers, sub: sub
-        });
+    var W = num(els.W, 1), L = num(els.L, 1);
+    var splitActive = (roofType === 'gable') && els.inSplitL.checked;
+    var splitLens = splitActive ? { left: num(els.inLLeft, L), right: num(els.inLRight, L) } : null;
+    var slopes = buildSlopes(W, L, splitLens);
+    slopes.forEach(function(s){
+      // sheet LENGTH runs along s.width (parallel to the ridge)
+      // sheets sit side by side (using sheet WIDTH) along s.rafter (across, eave to ridge)
+      var across = Math.ceil(s.rafter / Weff);
+      var tiers = tiersFor(s.width, sheetLen, overlap);
+      var sub = across * tiers;
+      totalSheets += sub;
+      totalArea += s.width * s.rafter;
+      sideTotals[s.side] += sub;
+      // grid drawing only: bands climb eave->ridge (tiers, since sheet LENGTH runs that way,
+      // parallel to water flow), subdivided along the ridge by sheet width (across)
+      sideLayout[s.side] = { rows: tiers, pieces: across };
+      rows.push({
+        name: SIDE_LABEL[s.side],
+        dims: fmt(s.width) + ' × ' + fmt(s.rafter),
+        across: across, tiers: tiers, sub: sub
       });
-      totalSheets = Math.ceil(totalSheets * (1 + wastePct/100));
-    }
+    });
+    totalSheets = Math.ceil(totalSheets * (1 + wastePct/100));
 
     els.outTotalSheets.innerHTML = fmt(totalSheets, 0) + '<small>แผ่น</small>';
     els.outArea.textContent = fmt(totalArea) + ' ม.²';
     els.outTotalLen.textContent = fmt(totalSheets * sheetLen) + ' ม.';
-    els.outSlopeCount.textContent = roofType === 'custom' ? '1 (รวม)' : rows.length;
+    els.outSlopeCount.textContent = rows.length;
 
-    var chipOrder = ['left','right','front','back'];
+    var chipOrder = ['left','right'];
     var chips = chipOrder.filter(function(k){ return sideTotals[k] > 0; })
-      .map(function(k){ return '<span class="side-chip"><i>' + SIDE_LABEL[k].replace(' (สกัด)','') + '</i><b>' + sideTotals[k] + ' แผ่น</b></span>'; });
+      .map(function(k){ return '<span class="side-chip"><i>' + SIDE_LABEL[k] + '</i><b>' + sideTotals[k] + ' แผ่น</b></span>'; });
     els.sideSplit.innerHTML = chips.length > 1 ? chips.join('') : '';
     els.sideSplit.hidden = chips.length <= 1;
 
@@ -592,7 +529,6 @@ footer.credit{
 
     var noteParts = [];
     noteParts.push('แผ่นวางแนวนอน ยาวขนานแนวสันหลังคา เรียง <b>' + fmt(Weff) + ' ม.</b> ต่อแผ่น ไล่ขึ้นจากชายคาถึงสัน (ไม่ปรับตามมุมลาด)');
-    if (roofType === 'hip') noteParts.push('ด้านหัวจั่วสามเหลี่ยมคิดจำนวนแผ่นเป็นประมาณครึ่งหนึ่งของพื้นที่สี่เหลี่ยมเทียบเท่า เนื่องจากต้องตัดเฉียง');
     noteParts.push('บวกเผื่อเสีย/สำรอง ' + fmt(wastePct,0) + '% ในยอดรวมแล้ว');
     els.calcNote.innerHTML = noteParts.join(' · ');
 
@@ -638,70 +574,24 @@ footer.credit{
     var shapes = '', grid = '', arrows = '', labels = '', note = '';
     var L1 = sideLayout || {};
 
-    if (roofType === 'shed' || roofType === 'flat'){
+    if (roofType === 'shed'){
       shapes = poly([[bx,by],[bx+bw,by],[bx+bw,by+bh],[bx,by+bh]], fill, strokeC);
       shapes += '<line x1="'+(bx+bw)+'" y1="'+by+'" x2="'+(bx+bw)+'" y2="'+(by+bh)+'" stroke="var(--ink)" stroke-width="4"/>';
       if (L1.single) grid = sheetGrid([bx,by],[bx,by+bh],[bx+bw,by],[bx+bw,by+bh], L1.single.rows, L1.single.pieces);
       arrows = arrow(bx+bw-25, cy, bx+25, cy);
       labels = countLabel(cx, cy+30, sideTotals.single);
       note = 'เส้นหนา = ด้านสูง (สัน) · เส้นบาง = แนวแผ่น · ลูกศร = ทิศน้ำไหล';
-    } else if (roofType === 'gable' || roofType === 'butterfly'){
-      var inward = (roofType === 'butterfly');
+    } else {
       shapes = poly([[bx,by],[cx,by],[cx,by+bh],[bx,by+bh]], fill, strokeC);
       shapes += poly([[cx,by],[bx+bw,by],[bx+bw,by+bh],[cx,by+bh]], fill2, strokeC);
       shapes += '<line x1="'+cx+'" y1="'+by+'" x2="'+cx+'" y2="'+(by+bh)+'" stroke="var(--ink)" stroke-width="4"/>';
       if (L1.left) grid += sheetGrid([bx,by],[bx,by+bh],[cx,by],[cx,by+bh], L1.left.rows, L1.left.pieces);
       if (L1.right) grid += sheetGrid([bx+bw,by],[bx+bw,by+bh],[cx,by],[cx,by+bh], L1.right.rows, L1.right.pieces);
-      arrows = inward
-        ? arrow(bx+25,cy,cx-15,cy) + arrow(bx+bw-25,cy,cx+15,cy)
-        : arrow(cx-15,cy,bx+25,cy) + arrow(cx+15,cy,bx+bw-25,cy);
+      arrows = arrow(cx-15,cy,bx+25,cy) + arrow(cx+15,cy,bx+bw-25,cy);
       labels = countLabel((bx+cx)/2, cy+34, sideTotals.left) + countLabel((cx+bx+bw)/2, cy+34, sideTotals.right);
       labels += '<text x="'+(bx+cx)/2+'" y="'+(cy-40)+'" text-anchor="middle" font-family="var(--font-body)" font-size="10.5" fill="var(--ink-dim)">ซ้าย</text>';
       labels += '<text x="'+(cx+bx+bw)/2+'" y="'+(cy-40)+'" text-anchor="middle" font-family="var(--font-body)" font-size="10.5" fill="var(--ink-dim)">ขวา</text>';
-      note = inward ? 'เส้นหนากลาง = รางรับน้ำ (วาเลย์) · น้ำไหลเข้าหากลาง' : 'เส้นหนากลาง = สันหลังคา · น้ำไหลออกสองข้าง';
-    } else if (roofType === 'hip'){
-      var shortSide = Math.min(W,L), longSide = Math.max(W,L);
-      var ridgeAlongL = (L >= W);
-      var hasRidge = (longSide - shortSide) > 0.001;
-      if (ridgeAlongL){
-        var rh = hasRidge ? bh*0.26 : 0;
-        var rt=[cx,cy-rh], rb=[cx,cy+rh];
-        var TL=[bx,by], TR=[bx+bw,by], BL=[bx,by+bh], BR=[bx+bw,by+bh];
-        shapes = poly([TL,rt,rb,BL], fill, strokeC);
-        shapes += poly([TR,rt,rb,BR], fill2, strokeC);
-        shapes += poly([TL,rt,TR], fill2, strokeC);
-        shapes += poly([BL,rb,BR], fill, strokeC);
-        if (hasRidge) shapes += '<line x1="'+rt[0]+'" y1="'+rt[1]+'" x2="'+rb[0]+'" y2="'+rb[1]+'" stroke="var(--ink)" stroke-width="4"/>';
-        if (L1.left) grid += sheetGrid(TL,BL,rt,rb, L1.left.rows, L1.left.pieces);
-        if (L1.right) grid += sheetGrid(TR,BR,rt,rb, L1.right.rows, L1.right.pieces);
-        if (L1.front) grid += sheetGrid(TL,TR,rt,rt, L1.front.rows, L1.front.pieces);
-        if (L1.back) grid += sheetGrid(BL,BR,rb,rb, L1.back.rows, L1.back.pieces);
-        arrows = arrow(cx-15,cy,bx+22,cy) + arrow(cx+15,cy,bx+bw-22,cy) +
-                 arrow(cx,(by+rt[1])/2-8,cx,by+14) + arrow(cx,(rb[1]+by+bh)/2+8,cx,by+bh-14);
-        labels = countLabel((bx+cx)/2, cy+30, sideTotals.left) + countLabel((cx+bx+bw)/2, cy+30, sideTotals.right);
-        labels += countLabel(cx-34, (by+rt[1])/2-2, sideTotals.front) + countLabel(cx+34, (rb[1]+by+bh)/2+2, sideTotals.back);
-      } else {
-        var rh2 = hasRidge ? bw*0.26 : 0;
-        var rl=[cx-rh2,cy], rr=[cx+rh2,cy];
-        var TL2=[bx,by], TR2=[bx+bw,by], BL2=[bx,by+bh], BR2=[bx+bw,by+bh];
-        shapes = poly([TL2,rl,rr,TR2], fill2, strokeC);
-        shapes += poly([BL2,rl,rr,BR2], fill, strokeC);
-        shapes += poly([TL2,rl,BL2], fill, strokeC);
-        shapes += poly([TR2,rr,BR2], fill2, strokeC);
-        if (hasRidge) shapes += '<line x1="'+rl[0]+'" y1="'+rl[1]+'" x2="'+rr[0]+'" y2="'+rr[1]+'" stroke="var(--ink)" stroke-width="4"/>';
-        if (L1.front) grid += sheetGrid(TL2,TR2,rl,rr, L1.front.rows, L1.front.pieces);
-        if (L1.back) grid += sheetGrid(BL2,BR2,rl,rr, L1.back.rows, L1.back.pieces);
-        if (L1.left) grid += sheetGrid(TL2,BL2,rl,rl, L1.left.rows, L1.left.pieces);
-        if (L1.right) grid += sheetGrid(TR2,BR2,rr,rr, L1.right.rows, L1.right.pieces);
-        arrows = arrow(cx,cy-15,cx,by+22) + arrow(cx,cy+15,cx,by+bh-22) +
-                 arrow((bx+rl[0])/2-8,cy,bx+14,cy) + arrow((rr[0]+bx+bw)/2+8,cy,bx+bw-14,cy);
-        labels = countLabel(cx, by+34, sideTotals.front) + countLabel(cx, by+bh-14, sideTotals.back);
-        labels += countLabel(bx+34, cy+18, sideTotals.left) + countLabel(bx+bw-34, cy+18, sideTotals.right);
-      }
-      note = 'เส้นหนา = แนวสัน/ตะเข้จั่ว · เส้นบาง = แนวแผ่น · ลูกศรชี้ทิศน้ำไหลแต่ละด้าน';
-    } else {
-      shapes = '<path d="M'+bx+' '+(by+bh*0.7)+' Q '+cx+' '+by+', '+(bx+bw)+' '+(by+bh*0.55)+'" fill="none" stroke="'+strokeC+'" stroke-width="3" stroke-linecap="round" stroke-dasharray="6 5"/>';
-      note = 'ทรงอิสระ — ใช้พื้นที่รวมที่กำหนดเอง ตรวจทิศทางน้ำไหลจริงหน้างาน';
+      note = 'เส้นหนากลาง = สันหลังคา · น้ำไหลออกสองข้าง';
     }
 
     var topLabel = splitLens
