@@ -343,7 +343,7 @@ footer.credit{
           <div class="field">
             <label for="inSheetLen">ความยาวแผ่นที่จะสั่งตัด</label>
             <div class="unit-input"><input type="number" id="inSheetLen" min="0.1" step="0.01" value="6"><span>ม.</span></div>
-            <div class="hint">แนวความยาวแผ่นต้องขนานทิศน้ำไหล (ไล่จากสันหลังคาลงชายคา) ปกติตัดให้ยาวเท่าความกว้างอาคาร</div>
+            <div class="hint">แผ่นวางแนวนอน ยาวขนานแนวสันหลังคา ปกติตัดให้ยาวเท่าความยาวอาคาร ถ้าสั้นกว่าจะต่อแผ่นเรียงไปตามแนวสัน</div>
           </div>
           <div class="field">
             <label for="inSheetWidth">หน้ากว้างใช้งานจริงต่อแผ่น</label>
@@ -364,7 +364,7 @@ footer.credit{
         <div class="divider"></div>
         <div class="row2">
           <div class="field">
-            <label for="inOverlap">ระยะซ้อนทับตามแนวลาด (ถ้าความกว้างอาคารเกินความยาวแผ่น)</label>
+            <label for="inOverlap">ระยะซ้อนทับปลายแผ่น (ถ้าความยาวอาคารเกินความยาวแผ่น)</label>
             <div class="unit-input"><input type="number" id="inOverlap" min="0" step="0.01" value="0.15"><span>ม.</span></div>
           </div>
           <div class="field">
@@ -394,7 +394,7 @@ footer.credit{
         <div id="breakdownWrap">
           <table class="slopes">
             <thead>
-              <tr><th>ด้านหลังคา</th><th>ยาวสัน×กว้างลาด (ม.)</th><th>แผ่น/แถว</th><th>ชั้นซ้อน</th><th>รวม (แผ่น)</th></tr>
+              <tr><th>ด้านหลังคา</th><th>ยาวสัน×กว้างลาด (ม.)</th><th>แผ่น/แถว (กว้าง÷หน้ากว้าง)</th><th>ต่อแผ่น (ยาว÷ความยาวแผ่น)</th><th>รวม (แผ่น)</th></tr>
             </thead>
             <tbody id="slopeTbody"></tbody>
           </table>
@@ -520,16 +520,16 @@ footer.credit{
       var W = num(els.W, 1), L = num(els.L, 1);
       var slopes = buildSlopes(W, L);
       slopes.forEach(function(s){
-        // sheet LENGTH runs along s.rafter (down-slope, same direction as water flow)
-        // sheets sit side by side (using sheet WIDTH) along s.width (along the ridge)
-        var across = Math.ceil(s.width / Weff);
-        var tiers = tiersFor(s.rafter, sheetLen, overlap);
+        // sheet LENGTH runs along s.width (parallel to the ridge)
+        // sheets sit side by side (using sheet WIDTH) along s.rafter (across, eave to ridge)
+        var across = Math.ceil(s.rafter / Weff);
+        var tiers = tiersFor(s.width, sheetLen, overlap);
         var sub = across * tiers;
         if (s.triangle) sub = Math.max(1, Math.ceil(sub / 2));
         totalSheets += sub;
         totalArea += s.width * s.rafter;
         sideTotals[s.side] += sub;
-        sideLayout[s.side] = { rows: tiers, pieces: across };
+        sideLayout[s.side] = { rows: across, pieces: tiers };
         rows.push({
           name: SIDE_LABEL[s.side] + (s.triangle ? ' (สามเหลี่ยม)' : ''),
           dims: fmt(s.width) + ' × ' + fmt(s.rafter),
@@ -555,7 +555,7 @@ footer.credit{
     }).join('');
 
     var noteParts = [];
-    noteParts.push('แผ่นวางแนวตั้ง ยาวขนานทิศน้ำไหล เรียง <b>' + fmt(Weff) + ' ม.</b> ต่อแผ่น ชิดกันไปตามแนวสันหลังคา (ไม่ปรับตามมุมลาด)');
+    noteParts.push('แผ่นวางแนวนอน ยาวขนานแนวสันหลังคา เรียง <b>' + fmt(Weff) + ' ม.</b> ต่อแผ่น ไล่ขึ้นจากชายคาถึงสัน (ไม่ปรับตามมุมลาด)');
     if (roofType === 'hip') noteParts.push('ด้านหัวจั่วสามเหลี่ยมคิดจำนวนแผ่นเป็นประมาณครึ่งหนึ่งของพื้นที่สี่เหลี่ยมเทียบเท่า เนื่องจากต้องตัดเฉียง');
     noteParts.push('บวกเผื่อเสีย/สำรอง ' + fmt(wastePct,0) + '% ในยอดรวมแล้ว');
     els.calcNote.innerHTML = noteParts.join(' · ');
