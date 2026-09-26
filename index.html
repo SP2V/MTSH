@@ -56,6 +56,8 @@
 }
 *{box-sizing:border-box;}
 [hidden]{display:none !important;}
+.side-head{font-family:var(--font-display);font-weight:600;font-size:14px;color:var(--accent);margin:4px 0 10px;}
+#gableDims .row2 + .side-head{margin-top:6px;}
 html,body{margin:0;}
 body{
   background:var(--bg);
@@ -285,7 +287,7 @@ footer.credit{
     <div>
       <div class="card">
         <h2><span class="n">1</span> ขนาดพื้นที่หลังคา</h2>
-        <div class="row2">
+        <div class="row2" id="shedDims">
           <div class="field">
             <label for="inW">ความกว้างอาคาร (แนวลาดของหลังคา)</label>
             <div class="unit-input"><input type="number" id="inW" min="0.1" step="0.01" value="8"><span>ม.</span></div>
@@ -295,20 +297,28 @@ footer.credit{
             <div class="unit-input"><input type="number" id="inL" min="0.1" step="0.01" value="12"><span>ม.</span></div>
           </div>
         </div>
-        <div class="field" id="splitLToggleField" hidden>
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;">
-            <input type="checkbox" id="inSplitL" style="width:auto;">
-            ความยาวสันสองฝั่งไม่เท่ากัน (กรอกแยกซ้าย-ขวา)
-          </label>
-        </div>
-        <div class="row2" id="splitLFields" hidden>
-          <div class="field">
-            <label for="inLLeft">ความยาวฝั่งซ้าย</label>
-            <div class="unit-input"><input type="number" id="inLLeft" min="0.1" step="0.01" value="12"><span>ม.</span></div>
+        <div id="gableDims" hidden>
+          <div class="side-head">ด้านซ้าย</div>
+          <div class="row2">
+            <div class="field">
+              <label for="inWLeft">กว้าง (แนวลาด)</label>
+              <div class="unit-input"><input type="number" id="inWLeft" min="0.1" step="0.01" value="4"><span>ม.</span></div>
+            </div>
+            <div class="field">
+              <label for="inLLeft">ยาว (แนวสัน)</label>
+              <div class="unit-input"><input type="number" id="inLLeft" min="0.1" step="0.01" value="12"><span>ม.</span></div>
+            </div>
           </div>
-          <div class="field">
-            <label for="inLRight">ความยาวฝั่งขวา</label>
-            <div class="unit-input"><input type="number" id="inLRight" min="0.1" step="0.01" value="12"><span>ม.</span></div>
+          <div class="side-head">ด้านขวา</div>
+          <div class="row2">
+            <div class="field">
+              <label for="inWRight">กว้าง (แนวลาด)</label>
+              <div class="unit-input"><input type="number" id="inWRight" min="0.1" step="0.01" value="4"><span>ม.</span></div>
+            </div>
+            <div class="field">
+              <label for="inLRight">ยาว (แนวสัน)</label>
+              <div class="unit-input"><input type="number" id="inLRight" min="0.1" step="0.01" value="12"><span>ม.</span></div>
+            </div>
           </div>
         </div>
       </div>
@@ -411,8 +421,8 @@ footer.credit{
   var $ = function(id){ return document.getElementById(id); };
   var els = {
     W: $('inW'), L: $('inL'),
-    splitLToggleField: $('splitLToggleField'), inSplitL: $('inSplitL'), splitLFields: $('splitLFields'),
-    inLLeft: $('inLLeft'), inLRight: $('inLRight'),
+    shedDims: $('shedDims'), gableDims: $('gableDims'),
+    inWLeft: $('inWLeft'), inLLeft: $('inLLeft'), inWRight: $('inWRight'), inLRight: $('inLRight'),
     sheetLen: $('inSheetLen'), sheetWidth: $('inSheetWidth'),
     customWidth: $('inCustomWidth'), customWidthField: $('customWidthField'),
     overlap: $('inOverlap'), roundAcross: $('inRoundAcross'), roundAtField: $('roundAtField'), roundAt: $('inRoundAt'),
@@ -430,9 +440,8 @@ footer.credit{
       document.querySelectorAll('.roof-opt').forEach(function(o){ o.classList.remove('active'); });
       opt.classList.add('active');
       roofType = opt.getAttribute('data-type');
-      var isGableLike = (roofType === 'gable');
-      els.splitLToggleField.hidden = !isGableLike;
-      els.splitLFields.hidden = !(isGableLike && els.inSplitL.checked);
+      els.shedDims.hidden = (roofType === 'gable');
+      els.gableDims.hidden = (roofType !== 'gable');
       calc();
     });
   });
@@ -455,16 +464,7 @@ footer.credit{
     return frac >= t - 1e-9 ? base + 1 : base;
   }
 
-  els.inSplitL.addEventListener('change', function(){
-    els.splitLFields.hidden = !els.inSplitL.checked;
-    if (els.inSplitL.checked){
-      els.inLLeft.value = els.L.value;
-      els.inLRight.value = els.L.value;
-    }
-    calc();
-  });
-
-  [els.W, els.L, els.sheetLen, els.customWidth, els.overlap, els.inLLeft, els.inLRight]
+  [els.W, els.L, els.sheetLen, els.customWidth, els.overlap, els.inWLeft, els.inLLeft, els.inWRight, els.inLRight]
     .forEach(function(el){ el.addEventListener('input', calc); });
 
   function num(el, fallback){
@@ -485,18 +485,13 @@ footer.credit{
 
   var SIDE_LABEL = { left:'ด้านซ้าย', right:'ด้านขวา', single:'ผืนหลังคา' };
 
-  function buildSlopes(W, L, splitLens){
-    var slopes = [];
-    if (roofType === 'shed'){
-      slopes.push({ side:'single', width:L, rafter: W });
-    } else if (roofType === 'gable'){
-      var r = W/2;
-      var lenLeft = splitLens ? splitLens.left : L;
-      var lenRight = splitLens ? splitLens.right : L;
-      slopes.push({ side:'left', width:lenLeft, rafter:r });
-      slopes.push({ side:'right', width:lenRight, rafter:r });
-    }
-    return slopes;
+  // Each gable side is computed exactly like a standalone shed roof, then summed.
+  function buildSlopes(dims){
+    if (roofType === 'shed') return [{ side:'single', width:dims.L, rafter:dims.W }];
+    return [
+      { side:'left',  width:dims.left.L,  rafter:dims.left.W },
+      { side:'right', width:dims.right.L, rafter:dims.right.W }
+    ];
   }
 
   function calc(){
@@ -508,10 +503,11 @@ footer.credit{
     var sideTotals = { left:0, right:0, single:0 };
     var sideLayout = {};
 
-    var W = num(els.W, 1), L = num(els.L, 1);
-    var splitActive = (roofType === 'gable') && els.inSplitL.checked;
-    var splitLens = splitActive ? { left: num(els.inLLeft, L), right: num(els.inLRight, L) } : null;
-    var slopes = buildSlopes(W, L, splitLens);
+    var dims = roofType === 'gable'
+      ? { left:  { W: num(els.inWLeft, 1),  L: num(els.inLLeft, 1) },
+          right: { W: num(els.inWRight, 1), L: num(els.inLRight, 1) } }
+      : { W: num(els.W, 1), L: num(els.L, 1) };
+    var slopes = buildSlopes(dims);
     slopes.forEach(function(s){
       // sheet LENGTH runs along s.width (parallel to the ridge)
       // sheets sit side by side (using sheet WIDTH) along s.rafter (across, eave to ridge)
@@ -554,7 +550,7 @@ footer.credit{
     noteParts.push('แผ่นวางแนวนอน ยาวขนานแนวสันหลังคา เรียง <b>' + fmt(Weff) + ' ม.</b> ต่อแผ่น ไล่ขึ้นจากชายคาถึงสัน (ไม่ปรับตามมุมลาด)');
     els.calcNote.innerHTML = noteParts.join(' · ');
 
-    drawDiagram(sideTotals, sideLayout, splitLens);
+    drawDiagram(sideTotals, sideLayout, dims);
   }
 
   function arrow(x1,y1,x2,y2){
@@ -585,13 +581,12 @@ footer.credit{
   }
 
   // Top-down plan view: box width axis = W (slope/eave-to-eave), height axis = L (ridge direction)
-  function drawDiagram(sideTotals, sideLayout, splitLens){
-    var W = num(els.W, 1), L = num(els.L, 1);
+  function drawDiagram(sideTotals, sideLayout, dims){
     var strokeC = 'var(--accent2)';
     var fill = 'color-mix(in srgb, var(--accent2) 14%, transparent)';
     var fill2 = 'color-mix(in srgb, var(--accent2) 24%, transparent)';
     var bx=30, by=18, bw=200, bh=144, cx=bx+bw/2, cy=by+bh/2;
-    var vb = '0 0 260 180';
+    var vb = '0 0 260 ' + (roofType === 'gable' ? 192 : 180);
     var defs = '<defs><marker id="waterArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="var(--accent)"/></marker></defs>';
     var shapes = '', grid = '', arrows = '', labels = '', note = '';
     var L1 = sideLayout || {};
@@ -616,14 +611,20 @@ footer.credit{
       note = 'เส้นหนากลาง = สันหลังคา · น้ำไหลออกสองข้าง';
     }
 
-    var topLabel = splitLens
-      ? '<text x="'+(bx+cx)/2+'" y="'+(by-6)+'" text-anchor="middle" font-family="var(--font-mono)" font-size="10.5" fill="var(--ink-dim)">L ซ้าย ' + fmt(splitLens.left,1) + ' ม.</text>' +
-        '<text x="'+(cx+bx+bw)/2+'" y="'+(by-6)+'" text-anchor="middle" font-family="var(--font-mono)" font-size="10.5" fill="var(--ink-dim)">L ขวา ' + fmt(splitLens.right,1) + ' ม.</text>'
-      : '<text x="'+cx+'" y="'+(by-6)+'" text-anchor="middle" font-family="var(--font-mono)" font-size="11" fill="var(--ink-dim)">L = ' + fmt(L,1) + ' ม.</text>';
+    function dimText(x, y, t, rot){
+      return '<text x="'+x+'" y="'+y+'" text-anchor="middle" font-family="var(--font-mono)" font-size="10.5" fill="var(--ink-dim)"' +
+        (rot ? ' transform="rotate(-90 '+x+' '+y+')"' : '') + '>' + t + '</text>';
+    }
+    var dimLabels = roofType === 'gable'
+      ? dimText((bx+cx)/2, by-6, 'L ' + fmt(dims.left.L,1) + ' ม.') +
+        dimText((cx+bx+bw)/2, by-6, 'L ' + fmt(dims.right.L,1) + ' ม.') +
+        dimText((bx+cx)/2, by+bh+12, 'W ' + fmt(dims.left.W,1) + ' ม.') +
+        dimText((cx+bx+bw)/2, by+bh+12, 'W ' + fmt(dims.right.W,1) + ' ม.')
+      : dimText(cx, by-6, 'L = ' + fmt(dims.L,1) + ' ม.') +
+        dimText(bx-14, cy, 'W = ' + fmt(dims.W,1) + ' ม.', true);
     els.diagramWrap.innerHTML =
-      '<svg viewBox="'+vb+'" width="320">' + defs + shapes + grid + arrows + labels + topLabel +
-      '<text x="'+(bx-14)+'" y="'+cy+'" text-anchor="middle" font-family="var(--font-mono)" font-size="11" fill="var(--ink-dim)" transform="rotate(-90 '+(bx-14)+' '+cy+')">W = ' + fmt(W,1) + ' ม.</text>' +
-      '<text x="'+cx+'" y="'+(by+bh+18)+'" text-anchor="middle" font-family="var(--font-body)" font-size="10" fill="var(--ink-dim)">' + note + '</text>' +
+      '<svg viewBox="'+vb+'" width="320">' + defs + shapes + grid + arrows + labels + dimLabels +
+      '<text x="'+cx+'" y="'+(by+bh+(roofType === 'gable' ? 28 : 18))+'" text-anchor="middle" font-family="var(--font-body)" font-size="10" fill="var(--ink-dim)">' + note + '</text>' +
       '</svg>';
   }
 
