@@ -359,10 +359,6 @@ footer.credit{
             <label for="inOverlap">ระยะซ้อนทับปลายแผ่น (ถ้าความยาวอาคารเกินความยาวแผ่น)</label>
             <div class="unit-input"><input type="number" id="inOverlap" min="0" step="0.01" value="0.15"><span>ม.</span></div>
           </div>
-          <div class="field">
-            <label for="inWaste">เผื่อเสีย/สำรอง</label>
-            <div class="unit-input"><input type="number" id="inWaste" min="0" max="50" step="1" value="0"><span>%</span></div>
-          </div>
         </div>
         <div class="field" style="margin-top:16px;">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;">
@@ -419,7 +415,7 @@ footer.credit{
     inLLeft: $('inLLeft'), inLRight: $('inLRight'),
     sheetLen: $('inSheetLen'), sheetWidth: $('inSheetWidth'),
     customWidth: $('inCustomWidth'), customWidthField: $('customWidthField'),
-    overlap: $('inOverlap'), waste: $('inWaste'), roundAcross: $('inRoundAcross'), roundAtField: $('roundAtField'), roundAt: $('inRoundAt'),
+    overlap: $('inOverlap'), roundAcross: $('inRoundAcross'), roundAtField: $('roundAtField'), roundAt: $('inRoundAt'),
     outTotalSheets: $('outTotalSheets'), outArea: $('outArea'),
     outTotalLen: $('outTotalLen'), outSlopeCount: $('outSlopeCount'),
     slopeTbody: $('slopeTbody'), calcNote: $('calcNote'),
@@ -468,7 +464,7 @@ footer.credit{
     calc();
   });
 
-  [els.W, els.L, els.sheetLen, els.customWidth, els.overlap, els.waste, els.inLLeft, els.inLRight]
+  [els.W, els.L, els.sheetLen, els.customWidth, els.overlap, els.inLLeft, els.inLRight]
     .forEach(function(el){ el.addEventListener('input', calc); });
 
   function num(el, fallback){
@@ -507,7 +503,6 @@ footer.credit{
     var Weff = els.sheetWidth.value === 'custom' ? num(els.customWidth, 0.63) : parseFloat(els.sheetWidth.value);
     var sheetLen = num(els.sheetLen, 1);
     var overlap = Math.max(parseFloat(els.overlap.value) || 0, 0);
-    var wastePct = Math.max(parseFloat(els.waste.value) || 0, 0);
 
     var totalSheets = 0, totalArea = 0, rows = [];
     var sideTotals = { left:0, right:0, single:0 };
@@ -539,7 +534,6 @@ footer.credit{
         tiers: tiers, sub: subRaw === sub ? fmt(sub) : fmt(subRaw) + ' → ' + sub
       });
     });
-    totalSheets = Math.ceil(totalSheets * (1 + wastePct/100));
 
     els.outTotalSheets.innerHTML = fmt(totalSheets, 0) + '<small>แผ่น</small>';
     els.outArea.textContent = fmt(totalArea) + ' ม.²';
@@ -558,7 +552,6 @@ footer.credit{
 
     var noteParts = [];
     noteParts.push('แผ่นวางแนวนอน ยาวขนานแนวสันหลังคา เรียง <b>' + fmt(Weff) + ' ม.</b> ต่อแผ่น ไล่ขึ้นจากชายคาถึงสัน (ไม่ปรับตามมุมลาด)');
-    noteParts.push('บวกเผื่อเสีย/สำรอง ' + fmt(wastePct,0) + '% ในยอดรวมแล้ว');
     els.calcNote.innerHTML = noteParts.join(' · ');
 
     drawDiagram(sideTotals, sideLayout, splitLens);
