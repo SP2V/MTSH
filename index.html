@@ -580,13 +580,12 @@ footer.credit{
            '<text x="'+x+'" y="'+(y+13)+'" text-anchor="middle" font-family="var(--font-body)" font-size="9.5" fill="var(--ink-dim)">แผ่น</text>';
   }
 
-  // Top-down plan view: box width axis = W (slope/eave-to-eave), height axis = L (ridge direction)
   function drawDiagram(sideTotals, sideLayout, dims){
     var strokeC = 'var(--accent2)';
     var fill = 'color-mix(in srgb, var(--accent2) 14%, transparent)';
     var fill2 = 'color-mix(in srgb, var(--accent2) 24%, transparent)';
     var bx=30, by=18, bw=200, bh=144, cx=bx+bw/2, cy=by+bh/2;
-    var vb = '0 0 260 ' + (roofType === 'gable' ? 192 : 180);
+    var vb = '0 0 260 180';
     var defs = '<defs><marker id="waterArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="var(--accent)"/></marker></defs>';
     var shapes = '', grid = '', arrows = '', labels = '', note = '';
     var L1 = sideLayout || {};
@@ -615,16 +614,17 @@ footer.credit{
       return '<text x="'+x+'" y="'+y+'" text-anchor="middle" font-family="var(--font-mono)" font-size="10.5" fill="var(--ink-dim)"' +
         (rot ? ' transform="rotate(-90 '+x+' '+y+')"' : '') + '>' + t + '</text>';
     }
+    // horizontal axis = W (eave-to-ridge, water flow); vertical axis = L (along the ridge)
     var dimLabels = roofType === 'gable'
-      ? dimText((bx+cx)/2, by-6, 'L ' + fmt(dims.left.L,1) + ' ม.') +
-        dimText((cx+bx+bw)/2, by-6, 'L ' + fmt(dims.right.L,1) + ' ม.') +
-        dimText((bx+cx)/2, by+bh+12, 'W ' + fmt(dims.left.W,1) + ' ม.') +
-        dimText((cx+bx+bw)/2, by+bh+12, 'W ' + fmt(dims.right.W,1) + ' ม.')
-      : dimText(cx, by-6, 'L = ' + fmt(dims.L,1) + ' ม.') +
-        dimText(bx-14, cy, 'W = ' + fmt(dims.W,1) + ' ม.', true);
+      ? dimText((bx+cx)/2, by-6, 'W ' + fmt(dims.left.W,1) + ' ม.') +
+        dimText((cx+bx+bw)/2, by-6, 'W ' + fmt(dims.right.W,1) + ' ม.') +
+        dimText(bx-14, cy, 'L ' + fmt(dims.left.L,1) + ' ม.', true) +
+        dimText(bx+bw+14, cy, 'L ' + fmt(dims.right.L,1) + ' ม.', true)
+      : dimText(cx, by-6, 'W = ' + fmt(dims.W,1) + ' ม.') +
+        dimText(bx-14, cy, 'L = ' + fmt(dims.L,1) + ' ม.', true);
     els.diagramWrap.innerHTML =
       '<svg viewBox="'+vb+'" width="320">' + defs + shapes + grid + arrows + labels + dimLabels +
-      '<text x="'+cx+'" y="'+(by+bh+(roofType === 'gable' ? 28 : 18))+'" text-anchor="middle" font-family="var(--font-body)" font-size="10" fill="var(--ink-dim)">' + note + '</text>' +
+      '<text x="'+cx+'" y="'+(by+bh+18)+'" text-anchor="middle" font-family="var(--font-body)" font-size="10" fill="var(--ink-dim)">' + note + '</text>' +
       '</svg>';
   }
 
