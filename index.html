@@ -507,7 +507,8 @@ footer.credit{
       var acrossRaw = s.rafter / Weff;
       var across = els.roundAcross.checked ? Math.max(1, Math.round(acrossRaw)) : acrossRaw;
       var tiers = tiersFor(s.width, sheetLen, overlap);
-      var sub = across * tiers;
+      var subRaw = across * tiers;
+      var sub = els.roundAcross.checked ? subRaw : Math.round(subRaw);
       totalSheets += sub;
       totalArea += s.width * s.rafter;
       sideTotals[s.side] += sub;
@@ -518,7 +519,7 @@ footer.credit{
         name: SIDE_LABEL[s.side],
         dims: fmt(s.width) + ' × ' + fmt(s.rafter),
         across: els.roundAcross.checked ? fmt(acrossRaw) + ' → ' + across : fmt(acrossRaw),
-        tiers: tiers, sub: fmt(sub)
+        tiers: tiers, sub: subRaw === sub ? fmt(sub) : fmt(subRaw) + ' → ' + sub
       });
     });
     totalSheets = Math.ceil(totalSheets * (1 + wastePct/100));
