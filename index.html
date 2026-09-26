@@ -574,10 +574,18 @@ footer.credit{
     for (var j=1;j<pN;j++){ var t=j/pN; out += thinLine(lerp(A,B,t), lerp(D,C,t)); }
     return out;
   }
-  function countLabel(x, y, n){
+  function countLabel(x, y, n, compact){
     if (!n) return '';
     return '<text x="'+x+'" y="'+y+'" text-anchor="middle" font-family="var(--font-mono)" font-weight="700" font-size="15" fill="var(--ink)">'+fmt(n)+'</text>' +
-           '<text x="'+x+'" y="'+(y+13)+'" text-anchor="middle" font-family="var(--font-body)" font-size="9.5" fill="var(--ink-dim)">แผ่น</text>';
+           (compact ? '' : '<text x="'+x+'" y="'+(y+13)+'" text-anchor="middle" font-family="var(--font-body)" font-size="9.5" fill="var(--ink-dim)">แผ่น</text>');
+  }
+  // Stack arrow above the count inside a box of height h centred on cy, dropping the unit word when tight.
+  function boxInner(x1, x2, cy, h, n, arrowDir){
+    var tight = h < 56;
+    var ay = tight ? cy - 8 : cy - 14;
+    var ny = tight ? cy + 11 : cy + 6;
+    var a = arrowDir < 0 ? arrow(x2-8, ay, x1+8, ay) : arrow(x1+8, ay, x2-8, ay);
+    return { arrow: a, label: countLabel((x1+x2)/2, ny, n, tight) };
   }
 
   function drawDiagram(sideTotals, sideLayout, dims){
@@ -595,9 +603,6 @@ footer.credit{
       return '<text x="'+x+'" y="'+y+'" text-anchor="middle" font-family="var(--font-mono)" font-size="10.5" fill="var(--ink-dim)"' +
         (rot ? ' transform="rotate(-90 '+x+' '+y+')"' : '') + '>' + t + '</text>';
     }
-    function nameText(x, y, t){
-      return '<text x="'+x+'" y="'+y+'" text-anchor="middle" font-family="var(--font-body)" font-size="10.5" fill="var(--ink-dim)">'+t+'</text>';
-    }
 
     // horizontal axis = W (eave-to-ridge, water flow); vertical axis = L (along the ridge)
     if (roofType === 'shed'){
@@ -608,8 +613,9 @@ footer.credit{
       shapes = poly([[bx,by],[bx+bw,by],[bx+bw,by+bh],[bx,by+bh]], fill, strokeC);
       shapes += '<line x1="'+(bx+bw)+'" y1="'+by+'" x2="'+(bx+bw)+'" y2="'+(by+bh)+'" stroke="var(--ink)" stroke-width="4"/>';
       if (L1.single) grid = sheetGrid([bx,by],[bx,by+bh],[bx+bw,by],[bx+bw,by+bh], L1.single.rows, L1.single.pieces);
-      arrows = arrow(bx+bw-10, cy, bx+10, cy);
-      labels = countLabel(cx, cy+24, sideTotals.single);
+      var inS = boxInner(bx, bx+bw, cy, bh, sideTotals.single, -1);
+      arrows = inS.arrow;
+      labels = inS.label;
       dimLabels = dimText(cx, by-6, 'W = ' + fmt(dims.W,1) + ' ม.') +
                   dimText(bx-10, cy, 'L = ' + fmt(dims.L,1) + ' ม.', true);
       note = 'เส้นหนา = ด้านสูง (สัน) · เส้นบาง = แนวแผ่น · ลูกศร = ทิศน้ำไหล';
@@ -628,11 +634,12 @@ footer.credit{
       shapes += '<line x1="'+rx+'" y1="'+gy+'" x2="'+rx+'" y2="'+(gy+H)+'" stroke="var(--ink)" stroke-width="4"/>';
       if (L1.left) grid += sheetGrid([gx,gy],[gx,gy+hl],[rx,gy],[rx,gy+hl], L1.left.rows, L1.left.pieces);
       if (L1.right) grid += sheetGrid([ex,gy],[ex,gy+hr],[rx,gy],[rx,gy+hr], L1.right.rows, L1.right.pieces);
-      arrows = arrow(rx-8, cyl, gx+8, cyl) + arrow(rx+8, cyr, ex-8, cyr);
-      labels = countLabel(mxl, cyl+24, sideTotals.left) + countLabel(mxr, cyr+24, sideTotals.right);
-      labels += nameText(mxl, gy+14, 'ซ้าย') + nameText(mxr, gy+14, 'ขวา');
-      dimLabels = dimText(mxl, gy-6, 'W ' + fmt(d.left.W,1) + ' ม.') +
-                  dimText(mxr, gy-6, 'W ' + fmt(d.right.W,1) + ' ม.') +
+      var inL = boxInner(gx, rx, cyl, hl, sideTotals.left, -1);
+      var inR = boxInner(rx, ex, cyr, hr, sideTotals.right, 1);
+      arrows = inL.arrow + inR.arrow;
+      labels = inL.label + inR.label;
+      dimLabels = dimText(mxl, gy-6, 'ซ้าย · W ' + fmt(d.left.W,1) + ' ม.') +
+                  dimText(mxr, gy-6, 'ขวา · W ' + fmt(d.right.W,1) + ' ม.') +
                   dimText(gx-10, cyl, 'L ' + fmt(d.left.L,1) + ' ม.', true) +
                   dimText(ex+10, cyr, 'L ' + fmt(d.right.L,1) + ' ม.', true);
       note = 'เส้นหนากลาง = สันหลังคา · น้ำไหลออกสองข้าง';
