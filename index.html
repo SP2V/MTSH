@@ -516,7 +516,7 @@ footer.credit{
       var across = els.roundAcross.checked ? Math.max(1, roundAt(acrossRaw, roundT)) : acrossRaw;
       var tiers = tiersFor(s.width, sheetLen, overlap);
       var subRaw = across * tiers;
-      var sub = els.roundAcross.checked ? subRaw : Math.round(subRaw);
+      var sub = els.roundAcross.checked ? subRaw : Math.floor(subRaw + 1e-9);
       totalSheets += sub;
       totalArea += s.width * s.rafter;
       sideTotals[s.side] += sub;
