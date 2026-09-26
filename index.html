@@ -584,47 +584,63 @@ footer.credit{
     var strokeC = 'var(--accent2)';
     var fill = 'color-mix(in srgb, var(--accent2) 14%, transparent)';
     var fill2 = 'color-mix(in srgb, var(--accent2) 24%, transparent)';
-    var bx=30, by=18, bw=200, bh=144, cx=bx+bw/2, cy=by+bh/2;
+    // Drawing area; the roof is scaled to its real W:L proportions and centred in it.
+    var AX=30, AY=18, AW=200, AH=144, MIN=24;
     var vb = '0 0 260 180';
     var defs = '<defs><marker id="waterArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="var(--accent)"/></marker></defs>';
-    var shapes = '', grid = '', arrows = '', labels = '', note = '';
+    var shapes = '', grid = '', arrows = '', labels = '', note = '', dimLabels = '';
     var L1 = sideLayout || {};
-
-    if (roofType === 'shed'){
-      shapes = poly([[bx,by],[bx+bw,by],[bx+bw,by+bh],[bx,by+bh]], fill, strokeC);
-      shapes += '<line x1="'+(bx+bw)+'" y1="'+by+'" x2="'+(bx+bw)+'" y2="'+(by+bh)+'" stroke="var(--ink)" stroke-width="4"/>';
-      if (L1.single) grid = sheetGrid([bx,by],[bx,by+bh],[bx+bw,by],[bx+bw,by+bh], L1.single.rows, L1.single.pieces);
-      arrows = arrow(bx+bw-25, cy, bx+25, cy);
-      labels = countLabel(cx, cy+30, sideTotals.single);
-      note = 'เส้นหนา = ด้านสูง (สัน) · เส้นบาง = แนวแผ่น · ลูกศร = ทิศน้ำไหล';
-    } else {
-      shapes = poly([[bx,by],[cx,by],[cx,by+bh],[bx,by+bh]], fill, strokeC);
-      shapes += poly([[cx,by],[bx+bw,by],[bx+bw,by+bh],[cx,by+bh]], fill2, strokeC);
-      shapes += '<line x1="'+cx+'" y1="'+by+'" x2="'+cx+'" y2="'+(by+bh)+'" stroke="var(--ink)" stroke-width="4"/>';
-      if (L1.left) grid += sheetGrid([bx,by],[bx,by+bh],[cx,by],[cx,by+bh], L1.left.rows, L1.left.pieces);
-      if (L1.right) grid += sheetGrid([bx+bw,by],[bx+bw,by+bh],[cx,by],[cx,by+bh], L1.right.rows, L1.right.pieces);
-      arrows = arrow(cx-15,cy,bx+25,cy) + arrow(cx+15,cy,bx+bw-25,cy);
-      labels = countLabel((bx+cx)/2, cy+34, sideTotals.left) + countLabel((cx+bx+bw)/2, cy+34, sideTotals.right);
-      labels += '<text x="'+(bx+cx)/2+'" y="'+(cy-40)+'" text-anchor="middle" font-family="var(--font-body)" font-size="10.5" fill="var(--ink-dim)">ซ้าย</text>';
-      labels += '<text x="'+(cx+bx+bw)/2+'" y="'+(cy-40)+'" text-anchor="middle" font-family="var(--font-body)" font-size="10.5" fill="var(--ink-dim)">ขวา</text>';
-      note = 'เส้นหนากลาง = สันหลังคา · น้ำไหลออกสองข้าง';
-    }
 
     function dimText(x, y, t, rot){
       return '<text x="'+x+'" y="'+y+'" text-anchor="middle" font-family="var(--font-mono)" font-size="10.5" fill="var(--ink-dim)"' +
         (rot ? ' transform="rotate(-90 '+x+' '+y+')"' : '') + '>' + t + '</text>';
     }
+    function nameText(x, y, t){
+      return '<text x="'+x+'" y="'+y+'" text-anchor="middle" font-family="var(--font-body)" font-size="10.5" fill="var(--ink-dim)">'+t+'</text>';
+    }
+
     // horizontal axis = W (eave-to-ridge, water flow); vertical axis = L (along the ridge)
-    var dimLabels = roofType === 'gable'
-      ? dimText((bx+cx)/2, by-6, 'W ' + fmt(dims.left.W,1) + ' ม.') +
-        dimText((cx+bx+bw)/2, by-6, 'W ' + fmt(dims.right.W,1) + ' ม.') +
-        dimText(bx-14, cy, 'L ' + fmt(dims.left.L,1) + ' ม.', true) +
-        dimText(bx+bw+14, cy, 'L ' + fmt(dims.right.L,1) + ' ม.', true)
-      : dimText(cx, by-6, 'W = ' + fmt(dims.W,1) + ' ม.') +
-        dimText(bx-14, cy, 'L = ' + fmt(dims.L,1) + ' ม.', true);
+    if (roofType === 'shed'){
+      var sc = Math.min(AW / dims.W, AH / dims.L);
+      var bw = Math.max(MIN, dims.W * sc), bh = Math.max(MIN, dims.L * sc);
+      var bx = AX + (AW - bw) / 2, by = AY + (AH - bh) / 2;
+      var cx = bx + bw / 2, cy = by + bh / 2;
+      shapes = poly([[bx,by],[bx+bw,by],[bx+bw,by+bh],[bx,by+bh]], fill, strokeC);
+      shapes += '<line x1="'+(bx+bw)+'" y1="'+by+'" x2="'+(bx+bw)+'" y2="'+(by+bh)+'" stroke="var(--ink)" stroke-width="4"/>';
+      if (L1.single) grid = sheetGrid([bx,by],[bx,by+bh],[bx+bw,by],[bx+bw,by+bh], L1.single.rows, L1.single.pieces);
+      arrows = arrow(bx+bw-10, cy, bx+10, cy);
+      labels = countLabel(cx, cy+24, sideTotals.single);
+      dimLabels = dimText(cx, by-6, 'W = ' + fmt(dims.W,1) + ' ม.') +
+                  dimText(bx-10, cy, 'L = ' + fmt(dims.L,1) + ' ม.', true);
+      note = 'เส้นหนา = ด้านสูง (สัน) · เส้นบาง = แนวแผ่น · ลูกศร = ทิศน้ำไหล';
+    } else {
+      var d = dims;
+      var sc2 = Math.min(AW / (d.left.W + d.right.W), AH / Math.max(d.left.L, d.right.L));
+      var wl = Math.max(MIN, d.left.W * sc2), wr = Math.max(MIN, d.right.W * sc2);
+      var hl = Math.max(MIN, d.left.L * sc2), hr = Math.max(MIN, d.right.L * sc2);
+      var H = Math.max(hl, hr);
+      var gx = AX + (AW - wl - wr) / 2, gy = AY + (AH - H) / 2;
+      var rx = gx + wl, ex = rx + wr;           // ridge x, right eave x
+      var cyl = gy + hl / 2, cyr = gy + hr / 2;
+      var mxl = gx + wl / 2, mxr = rx + wr / 2;
+      shapes = poly([[gx,gy],[rx,gy],[rx,gy+hl],[gx,gy+hl]], fill, strokeC);
+      shapes += poly([[rx,gy],[ex,gy],[ex,gy+hr],[rx,gy+hr]], fill2, strokeC);
+      shapes += '<line x1="'+rx+'" y1="'+gy+'" x2="'+rx+'" y2="'+(gy+H)+'" stroke="var(--ink)" stroke-width="4"/>';
+      if (L1.left) grid += sheetGrid([gx,gy],[gx,gy+hl],[rx,gy],[rx,gy+hl], L1.left.rows, L1.left.pieces);
+      if (L1.right) grid += sheetGrid([ex,gy],[ex,gy+hr],[rx,gy],[rx,gy+hr], L1.right.rows, L1.right.pieces);
+      arrows = arrow(rx-8, cyl, gx+8, cyl) + arrow(rx+8, cyr, ex-8, cyr);
+      labels = countLabel(mxl, cyl+24, sideTotals.left) + countLabel(mxr, cyr+24, sideTotals.right);
+      labels += nameText(mxl, gy+14, 'ซ้าย') + nameText(mxr, gy+14, 'ขวา');
+      dimLabels = dimText(mxl, gy-6, 'W ' + fmt(d.left.W,1) + ' ม.') +
+                  dimText(mxr, gy-6, 'W ' + fmt(d.right.W,1) + ' ม.') +
+                  dimText(gx-10, cyl, 'L ' + fmt(d.left.L,1) + ' ม.', true) +
+                  dimText(ex+10, cyr, 'L ' + fmt(d.right.L,1) + ' ม.', true);
+      note = 'เส้นหนากลาง = สันหลังคา · น้ำไหลออกสองข้าง';
+    }
+
     els.diagramWrap.innerHTML =
       '<svg viewBox="'+vb+'" width="320">' + defs + shapes + grid + arrows + labels + dimLabels +
-      '<text x="'+cx+'" y="'+(by+bh+18)+'" text-anchor="middle" font-family="var(--font-body)" font-size="10" fill="var(--ink-dim)">' + note + '</text>' +
+      '<text x="130" y="'+(AY+AH+18)+'" text-anchor="middle" font-family="var(--font-body)" font-size="10" fill="var(--ink-dim)">' + note + '</text>' +
       '</svg>';
   }
 
