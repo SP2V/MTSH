@@ -364,6 +364,12 @@ footer.credit{
             <div class="unit-input"><input type="number" id="inWaste" min="0" max="50" step="1" value="0"><span>%</span></div>
           </div>
         </div>
+        <div class="field" style="margin-top:16px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;">
+            <input type="checkbox" id="inRoundAcross" style="width:auto;">
+            เผื่อ: ปัดเศษแผ่น/แถว (เศษ ≥ 0.5 ปัดขึ้น, &lt; 0.5 ปัดลง)
+          </label>
+        </div>
       </div>
     </div>
 
@@ -408,7 +414,7 @@ footer.credit{
     inLLeft: $('inLLeft'), inLRight: $('inLRight'),
     sheetLen: $('inSheetLen'), sheetWidth: $('inSheetWidth'),
     customWidth: $('inCustomWidth'), customWidthField: $('customWidthField'),
-    overlap: $('inOverlap'), waste: $('inWaste'),
+    overlap: $('inOverlap'), waste: $('inWaste'), roundAcross: $('inRoundAcross'),
     outTotalSheets: $('outTotalSheets'), outArea: $('outArea'),
     outTotalLen: $('outTotalLen'), outSlopeCount: $('outSlopeCount'),
     slopeTbody: $('slopeTbody'), calcNote: $('calcNote'),
@@ -434,6 +440,8 @@ footer.credit{
     els.customWidthField.hidden = (els.sheetWidth.value !== 'custom');
     calc();
   });
+
+  els.roundAcross.addEventListener('change', calc);
 
   els.inSplitL.addEventListener('change', function(){
     els.splitLFields.hidden = !els.inSplitL.checked;
@@ -496,7 +504,8 @@ footer.credit{
     slopes.forEach(function(s){
       // sheet LENGTH runs along s.width (parallel to the ridge)
       // sheets sit side by side (using sheet WIDTH) along s.rafter (across, eave to ridge)
-      var across = Math.ceil(s.rafter / Weff);
+      var acrossRaw = s.rafter / Weff;
+      var across = els.roundAcross.checked ? Math.max(1, Math.round(acrossRaw)) : acrossRaw;
       var tiers = tiersFor(s.width, sheetLen, overlap);
       var sub = across * tiers;
       totalSheets += sub;
@@ -504,11 +513,12 @@ footer.credit{
       sideTotals[s.side] += sub;
       // grid drawing only: bands climb eave->ridge (tiers, since sheet LENGTH runs that way,
       // parallel to water flow), subdivided along the ridge by sheet width (across)
-      sideLayout[s.side] = { rows: tiers, pieces: across };
+      sideLayout[s.side] = { rows: tiers, pieces: Math.max(1, Math.round(acrossRaw)) };
       rows.push({
         name: SIDE_LABEL[s.side],
         dims: fmt(s.width) + ' × ' + fmt(s.rafter),
-        across: across, tiers: tiers, sub: sub
+        across: els.roundAcross.checked ? fmt(acrossRaw) + ' → ' + across : fmt(acrossRaw),
+        tiers: tiers, sub: fmt(sub)
       });
     });
     totalSheets = Math.ceil(totalSheets * (1 + wastePct/100));
@@ -520,7 +530,7 @@ footer.credit{
 
     var chipOrder = ['left','right'];
     var chips = chipOrder.filter(function(k){ return sideTotals[k] > 0; })
-      .map(function(k){ return '<span class="side-chip"><i>' + SIDE_LABEL[k] + '</i><b>' + sideTotals[k] + ' แผ่น</b></span>'; });
+      .map(function(k){ return '<span class="side-chip"><i>' + SIDE_LABEL[k] + '</i><b>' + fmt(sideTotals[k]) + ' แผ่น</b></span>'; });
     els.sideSplit.innerHTML = chips.length > 1 ? chips.join('') : '';
     els.sideSplit.hidden = chips.length <= 1;
 
@@ -559,7 +569,7 @@ footer.credit{
   }
   function countLabel(x, y, n){
     if (!n) return '';
-    return '<text x="'+x+'" y="'+y+'" text-anchor="middle" font-family="var(--font-mono)" font-weight="700" font-size="15" fill="var(--ink)">'+n+'</text>' +
+    return '<text x="'+x+'" y="'+y+'" text-anchor="middle" font-family="var(--font-mono)" font-weight="700" font-size="15" fill="var(--ink)">'+fmt(n)+'</text>' +
            '<text x="'+x+'" y="'+(y+13)+'" text-anchor="middle" font-family="var(--font-body)" font-size="9.5" fill="var(--ink-dim)">แผ่น</text>';
   }
 
